@@ -467,32 +467,31 @@ class NumericStatsMixin(with_metaclass(abc.ABCMeta, object)):  # type: ignore
             "t-statistic": None,
             "conservative": {"df": None, "p-value": None},
             "welch": {"df": None, "p-value": None},
+            "error": None,
         }
 
         invalid_stats = False
         if n1 <= 1 or n2 <= 1:
-            warnings.warn(
-                "Insufficient sample size. " "T-test cannot be performed.",
-                RuntimeWarning,
-            )
+            results["error"] = "Insufficient sample size. T-test cannot be performed."
+            warnings.warn(results["error"], RuntimeWarning)
             invalid_stats = True
-        if np.isnan([mean1, mean2, var1, var2]).any() or None in [
+        elif np.isnan([mean1, mean2, var1, var2]).any() or None in [
             mean1,
             mean2,
             var1,
             var2,
         ]:
-            warnings.warn(
+            results["error"] = (
                 "Null value(s) found in mean and/or variance values. "
-                "T-test cannot be performed.",
-                RuntimeWarning,
+                "T-test cannot be performed."
             )
+            warnings.warn(results["error"], RuntimeWarning)
             invalid_stats = True
-        if not var1 and not var2:
-            warnings.warn(
-                "Data were essentially constant. T-test cannot be performed.",
-                RuntimeWarning,
-            )
+        elif not var1 and not var2:
+            results[
+                "error"
+            ] = "Data were essentially constant. T-test cannot be performed."
+            warnings.warn(results["error"], RuntimeWarning)
             invalid_stats = True
         if invalid_stats:
             return results

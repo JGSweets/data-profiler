@@ -1698,8 +1698,9 @@ class TestFloatColumn(unittest.TestCase):
             },
             "t-test": {
                 "t-statistic": 0.5393164101529813,
-                "conservative": {"df": 2, "p-value": 0.643676756587475},
+                "conservative": {"df": 2.0, "p-value": 0.643676756587475},
                 "welch": {"df": 4.999127432888682, "p-value": 0.6128117908944144},
+                "error": None,
             },
         }
         profile_diff = profiler1.diff(profiler2)

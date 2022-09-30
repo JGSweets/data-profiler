@@ -793,8 +793,9 @@ class TestNumericStatsMixin(unittest.TestCase):
             "stddev": np.sqrt(10 / 9) - np.sqrt(9 * 20 / 19),
             "t-test": {
                 "t-statistic": 0.3923009049186606,
-                "conservative": {"df": 9, "p-value": 0.7039643545772609},
+                "conservative": {"df": 9.0, "p-value": 0.7039643545772609},
                 "welch": {"df": 25.945257024943864, "p-value": 0.6980401261750298},
+                "error": None,
             },
         }
 
@@ -835,6 +836,8 @@ class TestNumericStatsMixin(unittest.TestCase):
                 "t-statistic": None,
                 "conservative": {"df": None, "p-value": None},
                 "welch": {"df": None, "p-value": None},
+                "error": "Null value(s) found in mean and/or variance values. "
+                "T-test cannot be performed.",
             },
         }
         expected_var = expected_diff.pop("variance")
@@ -884,6 +887,7 @@ class TestNumericStatsMixin(unittest.TestCase):
                 "t-statistic": None,
                 "conservative": {"df": None, "p-value": None},
                 "welch": {"df": None, "p-value": None},
+                "error": "Insufficient sample size. T-test cannot be performed.",
             },
         }
         expected_var = expected_diff.pop("variance")
@@ -932,6 +936,7 @@ class TestNumericStatsMixin(unittest.TestCase):
                 "t-statistic": None,
                 "conservative": {"df": None, "p-value": None},
                 "welch": {"df": None, "p-value": None},
+                "error": "Data were essentially constant. T-test cannot be performed.",
             },
         }
         expected_var = expected_diff.pop("variance")
@@ -977,8 +982,9 @@ class TestNumericStatsMixin(unittest.TestCase):
             "stddev": np.sqrt(10 / 9) - np.sqrt(9 * 20 / 19),
             "t-test": {
                 "t-statistic": -3.138407239349285,
-                "conservative": {"df": 9, "p-value": 0.011958658754358975},
+                "conservative": {"df": 9.0, "p-value": 0.011958658754358975},
                 "welch": {"df": 25.945257024943864, "p-value": 0.004201616692122823},
+                "error": None,
             },
         }
         difference = other1.diff(other2)
