@@ -1,4 +1,5 @@
 """Contains space and time analysis tests for the Dataprofiler"""
+import gc
 import json
 import os
 import random
@@ -48,7 +49,6 @@ def dp_profile_space_analysis(
     """
     with memray.Tracker(path):
         profile = dp.Profiler(data, options=options, samples_per_update=len(data))
-
     return profile
 
 
@@ -61,9 +61,25 @@ def dp_merge_space_analysis(profile: StructuredProfiler, path: str):
     :param path: Path to output the memray bin file generated for space analysis
     :type path: string
     """
+    merged_profile = dp.Profiler.load("test_profile_200001.pkl")
+    # with memray.Tracker(path):
+    for i in range(100):
+        profile = dp.Profiler.load("test_profile_200001.pkl")
+        new_profile = merged_profile + profile
+        del merged_profile
+        del profile
+        merged_profile = new_profile
+        gc.collect()
 
-    with memray.Tracker(path):
-        _ = profile + profile
+    # merged_profile = np.random.random((int(1e6), 5))
+    # with memray.Tracker(path):
+    #     for i in range(100):
+    #         profile = np.random.random((int(1e6), 5))
+    #         new_profile = merged_profile + profile
+    #         del merged_profile
+    #         del profile
+    #         merged_profile = new_profile
+    #         gc.collect()
 
 
 def dp_space_time_analysis(
@@ -131,6 +147,7 @@ def dp_space_time_analysis(
                     sample_data, samples_per_update=len(sample_data), options=options
                 )
             total_time = time.time() - start_time
+            profiler.save(f"test_profile_{len(data)}.pkl")
 
             # get overall time for merging profiles
             start_time = time.time()
@@ -196,20 +213,23 @@ def dp_space_time_analysis(
                 f.close()
 
         if space_analysis:
-            if not os.path.exists("./space_analysis/"):
-                os.makedirs("./space_analysis/")
-            profile = dp_profile_space_analysis(
-                data=sample_data,
-                path=f"./space_analysis/profile_space_analysis_{sample_size}.bin",
-                options=options,
-            )
-            print(
-                f"Profile Space Analysis results saved to "
-                f"./space_analysis/profile_space_analysis_{sample_size}.bin"
-            )
+            # if not os.path.exists("./space_analysis/"):
+            #     os.makedirs("./space_analysis/")
+            # profile = dp_profile_space_analysis(
+            #     data=sample_data,
+            #     path=f"./space_analysis/profile_space_analysis_{sample_size}.bin",
+            #     options=options,
+            # )
+            # print(
+            #     f"Profile Space Analysis results saved to "
+            #     f"./space_analysis/profile_space_analysis_{sample_size}.bin"
+            # )
             try:
+                if sample_size == 0:
+                    raise ValueError()
                 dp_merge_space_analysis(
-                    profile=profile,
+                    profile=None,
+                    # profile=profile,
                     path=f"./space_analysis/merge_space_analysis_{sample_size}.bin",
                 )
                 print(
@@ -221,7 +241,11 @@ def dp_space_time_analysis(
                 print(
                     f"Warning: Profile merge failure on dataset set size {sample_size}"
                 )
-                os.remove(f"./space_analysis/profile_space_analysis_{sample_size}.bin")
+                bad_value_path = (
+                    f"./space_analysis/profile_space_analysis_{sample_size}.bin"
+                )
+                if os.path.exists(bad_value_path):
+                    os.remove(bad_value_path)
 
     # Print dictionary with profile times
     print("Results Saved")
@@ -250,14 +274,20 @@ if __name__ == "__main__":
     # these two options default to True if commented out
     OPTIONS.structured_options.multiprocess.is_enabled = False
     OPTIONS.structured_options.data_labeler.is_enabled = False
+    OPTIONS.set(
+        {
+            "*.category.max_sample_size_to_check_stop_condition": 1000,
+            "*.category.stop_condition_unique_value_ratio": 0.5,
+        }
+    )
 
     # parameter alteration
     ALLOW_SUBSAMPLING = False  # profiler to subsample the dataset if large
     PERCENT_TO_NAN = 0.0  # Value must be between 0 and 100
 
-    TIME_ANALYSIS = True
+    TIME_ANALYSIS = False
     SPACE_ANALYSIS = True
-    SAMPLE_SIZES = [100, 1000, 5000, 7500, int(1e5)]
+    SAMPLE_SIZES = [int(2e5)]  # [100, 1000, 5000, 7500, int(1e5)]
 
     # Dataset generation variables
     COLUMNS_TO_GENERATE = [
@@ -283,7 +313,6 @@ if __name__ == "__main__":
     # Generation of dataset name and path
     dataset_string_name = "".join([f"{x['generator']}_" for x in COLUMNS_TO_GENERATE])
     _dataset_path = f"./data/dataset_{dataset_string_name}{max(SAMPLE_SIZES)}.csv"
-
     # Generate and load data
     if not os.path.exists(_dataset_path):
         _full_dataset = generate_dataset_by_class(
@@ -294,7 +323,7 @@ if __name__ == "__main__":
         )
         print(f"Dataset of size {max(SAMPLE_SIZES)} created.")
     else:
-        _full_dataset = CSVData(_dataset_path, options=dict(encoding="utf-8"))
+        _full_dataset = CSVData(_dataset_path, options=dict(encoding="utf-8")).data
 
     dp_space_time_analysis(
         _rng,
